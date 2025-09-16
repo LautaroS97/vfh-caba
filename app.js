@@ -18,15 +18,13 @@ async function startBrowser() {
       '--disable-gpu',
       '--single-process',
       '--no-zygote'
-    ],
+    ]
   });
-  console.log('Navegador Puppeteer iniciado.');
 }
 
 async function stopBrowser() {
   if (browser) {
     await browser.close();
-    console.log('Navegador Puppeteer cerrado.');
   }
 }
 
@@ -35,68 +33,43 @@ async function fetchWithPuppeteer(url) {
   try {
     await page.goto(url, { timeout: 15000, waitUntil: 'domcontentloaded' });
     const bodyText = await page.evaluate(() => document.body.innerText);
-    try {
-      return JSON.parse(bodyText);
-    } catch (error) {
-      console.error(`Error parseando JSON desde ${url}:`, error.message);
-      console.error('Contenido recibido (primeros 500 caracteres):', bodyText.slice(0, 500));
-      throw new Error('La API no devolvió una respuesta JSON válida.');
-    }
-  } catch (error) {
-    console.error(`Error en Puppeteer al cargar ${url}:`, error.message);
-    throw error;
+    return JSON.parse(bodyText);
   } finally {
     await page.close();
   }
 }
 
 async function verifyProperty(lat, lng) {
-  try {
-    console.log(`Verificando propiedad en lat: ${lat}, lng: ${lng}`);
-    const baseUrl = `https://epok.buenosaires.gob.ar/catastro/parcela/?lng=${lng}&lat=${lat}`;
-    const data = await fetchWithPuppeteer(baseUrl);
-    if (data.propiedad_horizontal === "Si") {
-      console.log('Propiedad horizontal detectada. Verificando unidades funcionales...');
-      const phData = await fetchWithPuppeteer(`${baseUrl}&ph`);
-      if (phData.phs && phData.phs.length > 0) {
-        return { status: 'success', message: 'La partida existe', phs: phData.phs };
-      } else {
-        return { status: 'error', message: 'La partida no existe (sin unidades funcionales)' };
-      }
-    } else if (data.pdamatriz) {
-      const pdamatriz = data.pdamatriz;
-      console.log(`Número de partida matriz obtenido: ${pdamatriz}`);
-      return { status: 'success', message: 'La partida existe', pdamatriz };
+  const baseUrl = `https://epok.buenosaires.gob.ar/catastro/parcela/?lng=${lng}&lat=${lat}`;
+  const data = await fetchWithPuppeteer(baseUrl);
+  if (data.propiedad_horizontal === "Si") {
+    const phData = await fetchWithPuppeteer(`${baseUrl}&ph`);
+    if (phData.phs && phData.phs.length > 0) {
+      return { status: 'success', message: 'La partida existe', phs: phData.phs };
+    } else {
+      return { status: 'error', message: 'La partida no existe (sin unidades funcionales)' };
     }
-    return { status: 'error', message: 'La partida no existe' };
-  } catch (error) {
-    console.error('Error verificando propiedad:', error.message);
-    throw error;
+  } else if (data.pdamatriz) {
+    const pdamatriz = data.pdamatriz;
+    return { status: 'success', message: 'La partida existe', pdamatriz };
   }
+  return { status: 'error', message: 'La partida no existe' };
 }
 
 async function fetchVfhCabaData(lat, lng) {
-  try {
-    console.log(`Obteniendo datos de VFH-CABA para lat: ${lat}, lng: ${lng}`);
-    const baseUrl = `https://epok.buenosaires.gob.ar/catastro/parcela/?lng=${lng}&lat=${lat}`;
-    const data = await fetchWithPuppeteer(baseUrl);
-    if (data.propiedad_horizontal === "Si") {
-      console.log('Propiedad horizontal detectada. Obteniendo datos adicionales...');
-      const phData = await fetchWithPuppeteer(`${baseUrl}&ph`);
-      return phData.phs ? phData.phs.map(ph => ({
-        pdahorizontal: ph.pdahorizontal,
-        piso: ph.piso,
-        dpto: ph.dpto
-      })) : null;
-    } else if (data.pdamatriz) {
-      return data.pdamatriz;
-    }
-    console.error('No se encontraron datos válidos.');
-    return null;
-  } catch (error) {
-    console.error('Error obteniendo datos de VFH-CABA:', error.message);
-    throw error;
+  const baseUrl = `https://epok.buenosaires.gob.ar/catastro/parcela/?lng=${lng}&lat=${lat}`;
+  const data = await fetchWithPuppeteer(baseUrl);
+  if (data.propiedad_horizontal === "Si") {
+    const phData = await fetchWithPuppeteer(`${baseUrl}&ph`);
+    return phData.phs ? phData.phs.map(ph => ({
+      pdahorizontal: ph.pdahorizontal,
+      piso: ph.piso,
+      dpto: ph.dpto
+    })) : null;
+  } else if (data.pdamatriz) {
+    return data.pdamatriz;
   }
+  return null;
 }
 
 async function sendEmail(email, data) {
@@ -214,7 +187,7 @@ async function sendEmail(email, data) {
     secure: true,
     auth: {
       user: process.env.BREVO_USER,
-      pass: process.env.BREVO_PASS,
+      pass: process.env.BREVO_PASS
     },
     tls: { rejectUnauthorized: false }
   });
@@ -228,62 +201,46 @@ async function sendEmail(email, data) {
     html: dataHtml
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Correo enviado:', info.messageId);
-  } catch (error) {
-    console.error('Error enviando correo:', error.message);
-    throw error;
-  }
+  const info = await transporter.sendMail(mailOptions);
+  return info && info.messageId ? info.messageId : null;
 }
 
 app.use(express.json());
 
-app.post('/fetch-abl-data', async (req, res) => {
-  console.log('Received data:', req.body);
+app.post('/fetch-vfh-data', async (req, res) => {
   const { lat, lng, email } = req.body;
   try {
     const partidas = await fetchVfhCabaData(lat, lng);
     if (partidas) {
       await sendEmail(email, partidas);
-      console.log('Email sent with data:', { partidas });
       res.send({ message: 'Email enviado con éxito', partidas });
     } else {
-      console.error('No se pudo obtener el número de partida matriz o datos de propiedad horizontal.');
       res.status(500).send({ error: 'No se pudo obtener el número de partida matriz o datos de propiedad horizontal.' });
     }
-  } catch (error) {
-    console.error('Error en el proceso:', error);
+  } catch {
     res.status(500).send({ error: 'Error procesando la solicitud' });
   }
 });
 
 app.post('/verification', async (req, res) => {
-  console.log('Received verification request:', req.body);
   const { lat, lng } = req.body;
   try {
     const result = await verifyProperty(lat, lng);
-    console.log(result.message);
     res.send(result);
-  } catch (error) {
-    console.error('Error en la verificación:', error);
+  } catch {
     res.status(500).send({ status: 'error', message: 'Error verificando la existencia de la partida' });
   }
 });
 
 startBrowser()
   .then(() => {
-    const server = app.listen(port, () => {
-      console.log(`Servidor ejecutándose en el puerto ${port}`);
-    });
+    const server = app.listen(port, () => {});
     server.setTimeout(20000);
     process.on('SIGINT', async () => {
-      console.log('Apagando servidor...');
       await stopBrowser();
       process.exit();
     });
   })
-  .catch(error => {
-    console.error('Error iniciando Puppeteer:', error.message);
+  .catch(() => {
     process.exit(1);
   });
