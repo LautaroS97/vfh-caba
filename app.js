@@ -118,7 +118,7 @@ async function sendEmail(email, data) {
       '\n' +
       linesText +
       '\n\nIr a AGIP: https://lb.agip.gob.ar/ConsultaABL/\n\n' +
-      'Te llegó este correo porque solicitaste los números de partida al servicio de consultas de ProProp.';
+      'Te llegó este correo porque solicitaste la valuación fiscal homogénea al servicio de consultas de ProProp.';
 
     const listHtmlItems = data.map(item => {
       const partida = item.pdahorizontal ?? '';
@@ -130,7 +130,7 @@ async function sendEmail(email, data) {
             <div><strong>Partida:</strong> ${partida}</div>
             ${piso || dpto ? `<div style="font-size:.9rem;color:#555;">Piso: ${piso}${dpto ? ` | Dpto: ${dpto}` : ''}</div>` : ''}
           </div>
-          <a href="${agipBase}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 14px;background:#0b5ed7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-family:Arial,Helvetica,sans-serif;">Consultar VFH</a>
+          <a href="${agipBase}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 14px;background:#0b5ed7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-family:Arial,Helvetica,sans-serif;margin-right:1rem;">Consultar VFH</a>
         </li>
       `;
     }).join('');
@@ -147,7 +147,7 @@ async function sendEmail(email, data) {
           Enlace directo a AGIP: <a href="${agipBase}" target="_blank" rel="noopener noreferrer">Consulta ABL - AGIP</a>
         </p>
         <p style="font-size:.8rem;color:#777;font-style:italic;font-family:Arial,Helvetica,sans-serif;">
-          Te llegó este correo porque solicitaste los números de partida al servicio de consultas de ProProp.
+          Te llegó este correo porque solicitaste la valuación fiscal homogénea al servicio de consultas de ProProp.
         </p>
       </div>
     `;
@@ -158,7 +158,7 @@ async function sendEmail(email, data) {
       '\n' +
       `Partida: ${partida}\n` +
       `Consultar en: https://lb.agip.gob.ar/ConsultaABL/\n\n` +
-      'Te llegó este correo porque solicitaste tu número de partida al servicio de consultas de ProProp.';
+      'Te llegó este correo porque solicitaste la valuación fiscal homogénea al servicio de consultas de ProProp.';
 
     dataHtml = `
       ${headerHtml}
@@ -168,14 +168,14 @@ async function sendEmail(email, data) {
           <div style="text-align:left;">
             <p style="margin:0 0 .25rem 0;"><strong>Partida:</strong> ${partida}</p>
           </div>
-          <a href="${agipBase}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 16px;background:#0b5ed7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Consultar VFH</a>
+          <a href="${agipBase}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 16px;background:#0b5ed7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;margin-right:1rem;">Consultar VFH</a>
         </div>
         <hr style="margin:1rem 0;border:0;border-top:1px solid #e5e7eb;">
         <p style="font-size:.9rem;color:#555;">
           Enlace directo a AGIP: <a href="${agipBase}" target="_blank" rel="noopener noreferrer">Consulta ABL - AGIP</a>
         </p>
         <p style="font-size:.8rem;color:#777;font-style:italic;">
-          Te llegó este correo porque solicitaste tu número de partida al servicio de consultas de ProProp.
+          Te llegó este correo porque solicitaste la valuación fiscal homogénea al servicio de consultas de ProProp.
         </p>
       </div>
     `;
